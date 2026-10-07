@@ -23,7 +23,7 @@ function create(jsPDF,saved,missions,date=new Date()){
  title('Programmi eseguiti più recentemente');
  let any=false;for(const m of missions){const a=saved.activity?.[m.id];if(!a?.lastProgram?.length)continue;any=true;title(m.title);line('Ultimo programma avviato (può essere incompleto o contenere errori).',9,[103,116,136]);for(const l of programLines(a.lastProgram))line(l,9);}
  if(!any)line('Nessun programma ancora avviato.');
- if(saved.currentDraft){title('Bozza corrente - '+saved.currentDraft.title);line('Questa bozza non è una prova di completamento.',9,[103,116,136]);if(saved.currentDraft.error)line(saved.currentDraft.error,9);else for(const l of programLines(saved.currentDraft.program))line(l,9);}
+ if(saved.currentDraft){title('Bozza corrente - '+saved.currentDraft.title);line('Questa bozza non è una prova di completamento. Comprende solo i blocchi collegati all’avvio e le funzioni richiamate; i blocchi lasciati a parte restano salvati nell’editor.',9,[103,116,136]);if(saved.currentDraft.error)line(saved.currentDraft.error,9);else for(const l of programLines(saved.currentDraft.program))line(l,9);}
  title('Riflessione');line('Che cosa ho automatizzato? Quale errore mi ha aiutato a capire? Come posso rendere il programma più breve o più robusto?');
  for(let i=0;i<3;i++){y+=12;if(y>275)page();doc.setDrawColor(215,223,233);doc.line(left,y,192,y);}
  const count=doc.getNumberOfPages();for(let i=1;i<=count;i++){doc.setPage(i);doc.setFontSize(8);doc.setTextColor(115,129,147);doc.text('Fabbrica Automatica - report locale, non una valutazione automatica',18,289);doc.text(`${i} / ${count}`,192,289,{align:'right'});}
