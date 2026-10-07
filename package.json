@@ -1,0 +1,21 @@
+{
+  "name": "fabbrica-automatica",
+  "version": "2.0.0",
+  "description": "Undici livelli di automazione con Blockly, una fabbrica infinita e report PDF locali",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "start": "python3 -m http.server 8767 --bind 127.0.0.1 --directory dist"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "dependencies": {
+    "blockly": "13.3.0",
+    "jspdf": "4.2.1"
+  },
+  "private": true
+}
