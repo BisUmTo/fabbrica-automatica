@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#142237"><title>Fabbrica Automatica · Programma il tuo mondo</title><link rel="stylesheet" href="style.css"><script defer src="vendor/blockly/blockly_compressed.js"></script><script defer src="vendor/blockly/it.js"></script><script defer src="blockly-adapter.js"></script><script defer src="farm.js"></script><script defer src="report.js"></script><script defer src="vendor/jspdf/jspdf.umd.min.js"></script><script defer src="engine.js"></script><script defer src="app.js"></script></head>
+<body>
+<aside class="sidebar">
+ <a href="#pickplace" class="brand"><span class="brand-icon">▦</span><span>fabbrica<span class="brand-light">automatica</span></span></a>
+ <div class="sidebar-label">LABORATORIO INTERATTIVO</div>
+ <div class="course"><span class="course-icon">⌘</span><div>Automazione & logica<small>5ª ITT · Dall’idea al programma</small></div></div>
+ <div class="nav-heading">LE TUE SFIDE <span id="count">0 / 10 + ∞</span></div>
+ <nav id="missions" aria-label="Sfide"></nav>
+ <div class="sidebar-bottom"><div class="progress-track"><div id="progress"></div></div><p>Un problema. Un algoritmo.<br>Prova, osserva, migliora.</p><button class="teacher" id="report">▤ &nbsp; Scarica report PDF</button><span class="version">BLOCKLY · 10 SFIDE + MONDO INFINITO · FUNZIONA OFFLINE</span></div>
+</aside>
+<main>
+ <header class="topbar"><span>Laboratorio <span class="slash">/</span> <strong id="breadcrumb">Robotica</strong></span><div><span class="local-tag">Salvataggio sul dispositivo</span><button id="help" class="icon-button" aria-label="Come si usa">?</button></div></header>
+ <section class="mission-heading"><div><div class="eyebrow" id="eyebrow"></div><h1 id="title"></h1><p id="concept"></p></div><div class="mission-meta"><span id="level"></span><span id="time"></span></div></section>
+ <section class="brief"><span class="target-icon">◎</span><div><strong>La tua missione</strong><p id="brief"></p></div><button id="rules" class="text-button">Regole della sfida</button></section>
+ <section id="factory-contract" hidden></section><div class="workbench">
+  <section class="simulation panel"><div class="panel-heading"><h2><span class="panel-number">01</span> Il mondo</h2><span class="live-label" id="world-status">STATO INIZIALE</span></div><div id="scene" class="scene" aria-label="Simulazione"></div><div class="telemetry" id="telemetry"></div><div class="goal"><span>◎</span><div><small>OBIETTIVO</small><strong id="goal"></strong></div></div><div class="feedback" id="feedback" role="status" aria-live="polite"></div><div class="log-head"><span>REGISTRO DI ESECUZIONE</span><span id="steps-count">0 azioni</span></div><ol id="log" class="log"><li>Il simulatore è pronto. Tocca un blocco per iniziare.</li></ol></section>
+  <section class="coding panel"><div class="panel-heading"><h2><span class="panel-number">02</span> Il tuo programma</h2><div class="editor-tools"><button id="fit" class="icon-button" title="Centra il programma" aria-label="Centra il programma">⊙</button><button id="undo" class="icon-button" title="Annulla ultima modifica" aria-label="Annulla ultima modifica">↶</button><button id="clear" class="text-button">Svuota</button></div></div><div class="blockly-topline"><span>Trascina i blocchi e collegali all’avvio</span><span id="block-count">0 blocchi</span></div><div class="blockly-wrap"><div id="blockly" aria-label="Editor Blockly"></div><div id="execution-lock" hidden></div></div><div class="execution"><button class="primary" id="run">▶ &nbsp; Esegui</button><button id="step" class="secondary">▹ Un passo</button><button id="reset" class="icon-button" title="Ripristina la simulazione" aria-label="Ripristina la simulazione">↺</button><label class="speed">Velocità <select id="speed" aria-label="Velocità di esecuzione"><option value="850">1×</option><option value="400">2×</option><option value="150">4×</option></select></label></div></section>
+ </div>
+ <section id="factory-upgrades" hidden></section><footer class="learning-bar"><div><span class="idea">✦</span><span><strong>Prima pensa, poi programma.</strong> Prova a prevedere lo stato dopo ogni blocco.</span></div><button class="text-button" id="hint">Mi serve un indizio</button></footer>
+ <div class="prototype-note">Editor Blockly · Ambiente didattico di programmazione a blocchi. Le simulazioni non comandano un robot reale.</div>
+</main>
+<dialog id="modal"><div class="dialog-head"><h2 id="modal-title"></h2><button id="close-modal" class="icon-button" aria-label="Chiudi">×</button></div><div id="modal-body"></div><div id="modal-actions"></div></dialog>
+</body></html>
