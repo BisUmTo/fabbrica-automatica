@@ -38,6 +38,7 @@ Il mondo resta salvato cambiando sfida, modificando il programma e ricaricando l
 
 Oltre alle azioni del simulatore, tutti i livelli offrono le categorie **Controllo, Logica, Matematica, Variabili e Funzioni**. **Sensori** compare dove il mondo espone letture. Le definizioni native di Blockly possono essere rinominate e ricevere parametri tramite l’ingranaggio: i blocchi di chiamata si aggiornano automaticamente.
 
+- I blocchi staccati e le funzioni non richiamate possono restare nell’editor come bozze, anche incomplete. Restano salvati, ma non vengono eseguiti né inclusi nei programmi del report. Basta ricollegarli per usarli.
 - Le funzioni eseguono una sequenza di azioni (procedure, senza valore di ritorno). La definizione sta separata dall’avvio; il richiamo si incastra nel programma. I parametri sono locali alla chiamata; le altre variabili sono globali.
 - I blocchi di movimento, attesa e spostamento dischi con ingressi numerici accettano variabili, parametri e calcoli. I vecchi blocchi con numeri incorporati restano compatibili con i salvataggi esistenti.
 - Sono disponibili `finché / fino a`, ripetizioni con un valore calcolato, cicli con contatore, `se / altrimenti se / altrimenti`, confronti, `e / o / non`, aritmetica e resto della divisione.

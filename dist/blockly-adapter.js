@@ -41,8 +41,8 @@ function fromFlat(flat){
 function toFlat(ws){
  const tops=ws.getTopBlocks(true),starts=tops.filter(b=>b.type==='lab_start'),defs=tops.filter(b=>b.type==='procedures_defnoreturn');
  if(starts.length!==1)throw Error('Serve un solo blocco iniziale “quando premi Esegui”.');
- if(tops.length!==1+defs.length)throw Error('Collega tutti i blocchi al programma o dentro una funzione: ci sono blocchi staccati.');
  if(ws.getAllBlocks(false).length>200)throw Error('Limite: massimo 200 blocchi.');
+ const needed=new Set(),included=new Set();
  const out=[],variable=b=>{const model=b.getField('VAR').getVariable();return {variable:model.getId(),name:model.getName()};};
  function expression(b){
   if(!b)throw Error('Manca un valore: collega un numero, una variabile o un sensore.');
@@ -62,7 +62,7 @@ function toFlat(ws){
   }
  }
  function visit(b){while(b){const type=b.type.replace('lab_',''),a={type,blockId:b.id},e=name=>expression(b.getInputTargetBlock(name));
-  if(type==='procedures_callnoreturn'){out.push({...a,type:'call',name:b.getProcedureCall(),args:(b.saveExtraState()?.params||[]).map((_,i)=>e('ARG'+i))});}
+  if(type==='procedures_callnoreturn'){needed.add(b.getProcedureCall().toLocaleLowerCase());out.push({...a,type:'call',name:b.getProcedureCall(),args:(b.saveExtraState()?.params||[]).map((_,i)=>e('ARG'+i))});}
   else if(type==='variables_set'||type==='math_change')out.push({...a,...variable(b),type:type==='variables_set'?'set':'change',value:e(type==='variables_set'?'VALUE':'DELTA')});
   else if(type==='controls_if'){
    let count=0;while(b.getInput('IF'+count)){if(count)out.push({type:'else',blockId:b.id});out.push({...a,type:'if',condition:e('IF'+count)});visit(b.getInputTargetBlock('DO'+count));count++;}
@@ -81,7 +81,8 @@ function toFlat(ws){
   b=b.getNextBlock();
  }}
  visit(starts[0].getNextBlock());
- for(const b of defs){out.push({type:'procedure',name:b.getFieldValue('NAME'),params:b.getVarModels().map(v=>({id:v.getId(),name:v.getName()})),blockId:b.id});visit(b.getInputTargetBlock('STACK'));out.push({type:'end',blockId:b.id});}
+ // Only inspect reachable definitions: unfinished functions can stay parked too.
+ for(const name of needed){if(included.has(name))continue;included.add(name);const b=defs.find(d=>d.getFieldValue('NAME').toLocaleLowerCase()===name);if(!b)continue;out.push({type:'procedure',name:b.getFieldValue('NAME'),params:b.getVarModels().map(v=>({id:v.getId(),name:v.getName()})),blockId:b.id});visit(b.getInputTargetBlock('STACK'));out.push({type:'end',blockId:b.id});}
  return out;
 }
 // Blockly's native definitions keep rename, parameter mutation and call blocks in sync.
