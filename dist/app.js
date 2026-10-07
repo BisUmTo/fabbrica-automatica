@@ -5,22 +5,36 @@ const KEY='officina-blocchi-blockly-v2';
 let saved={programs:{},completed:[]};
 try{const raw=JSON.parse(localStorage.getItem(KEY));if(raw&&raw.programs&&typeof raw.programs==='object'&&Array.isArray(raw.completed))saved=raw;}catch{}
 saved.activity=saved.activity||{};saved.profile=saved.profile||{name:'',classe:'5 ITT'};let runOpen=false;
-let id='pickplace',state,blocks=[],compiled=null,pc=0,active=-1,running=false,timer=null,finished=false,history=[],messages=[],workspace=null,muting=false;
+let id='pickplace',state,blocks=[],compiled=null,active=-1,running=false,timer=null,finished=false,history=[],messages=[],workspace=null,muting=false;
 const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const kind=()=>E.mission(id).kind;
 const sensors={...Factory.sensors,clear:'strada libera',red:'pezzo rosso',below:'livello < 60 L',holding:'pinza piena'};
 const names={farm_collect:'Raccogli risorsa',farm_plant:'Semina grano',farm_deposit:'Scarica al magazzino',farm_craft:'Produci 1 kit',farm_ship:'Consegna ordine',pick:'prendi',drop:'rilascia',forward:'avanza di 1 casella'};
 const available={factory:['farm_go','farm_collect','farm_plant','farm_deposit','farm_craft','farm_ship','farm_upgrade','wait'],robot:['move','pick','drop'],river:['cross'],grid:['forward','turn'],sort:['sort'],tank:['valve','wait'],traffic:['light','wait'],hanoi:['disk']};
 const allowedSensors=()=>kind()==='factory'?Object.keys(Factory.sensors):kind()==='robot'?['holding']:kind()==='grid'?['clear']:kind()==='sort'?['red']:kind()==='tank'?['below']:[];
+const allowedValues=()=>kind()==='factory'?['x','y','wheat','ore','kits','coins','bag','orders','ticks']:['robot','grid'].includes(kind())?['x','y']:kind()==='tank'?['level']:kind()==='sort'?['remaining']:[];
 function persist(){if(id==='factory'&&state)saved.factory=E.copy(state);if(workspace)saved.programs[id]=B.serialization.workspaces.save(workspace);try{localStorage.setItem(KEY,JSON.stringify(saved));}catch{document.querySelector('.local-tag').textContent='Salvataggio non disponibile';}}
 function nav(){
  $('missions').innerHTML=E.missions.map((m,i)=>`<button class="mission-link ${m.id===id?'active':''}" data-mission="${m.id}" ${m.id===id?'aria-current="page"':''}><span class="nav-num">${String(i+1).padStart(2,'0')}</span><span class="nav-icon">${m.icon}</span><span>${m.title}</span>${saved.completed.includes(m.id)?'<span class="done" aria-label="Completata">✓</span>':''}</button>`).join('');
  const count=E.missions.filter(m=>m.kind!=='factory'&&saved.completed.includes(m.id)).length;$('count').textContent=`${count} / 10 + ∞`;$('progress').style.width=`${count*10}%`;
 }
 function toolbox(){
- const action=type=>({kind:'block',type:'lab_'+type});
- const controls=[action('repeat')];if(kind()==='factory')controls.push(action('forever'));if(allowedSensors().length)controls.push({...action('if'),fields:{sensor:allowedSensors()[0]}});
- return {kind:'categoryToolbox',contents:[{kind:'category',name:'Azioni',colour:'#5075d8',contents:available[kind()].map(action)},{kind:'category',name:'Controllo',colour:'#c68a2d',contents:controls}]};
+ const block=(type,fields,inputs)=>({kind:'block',type,...(fields?{fields}:{}),...(inputs?{inputs}:{})}),action=type=>block('lab_'+type);
+ const number=value=>({shadow:{type:'math_number',fields:{NUM:value}}});
+ const actions=available[kind()].map(action);
+ if(kind()==='factory')actions.push(block('lab_farm_go_value',null,{x:number(1),y:number(4)}));
+ if(kind()==='robot')actions.push(block('lab_move_value',null,{x:number(1),y:number(2)}));
+ if(kind()==='hanoi')actions.push(block('lab_disk_value',null,{from:number(1),to:number(3)}));
+ if(available[kind()].includes('wait'))actions.push(block('lab_wait_value',null,{seconds:number(1)}));
+ const controls=[action('repeat'),block('controls_repeat_ext',null,{TIMES:number(3)}),block('controls_for',null,{FROM:number(1),TO:number(3),BY:number(1)})];
+ if(kind()==='factory')controls.push(action('forever'));
+ if(allowedSensors().length)controls.push(block('lab_if',{sensor:allowedSensors()[0]}));
+ controls.push(block('controls_if'),block('controls_whileUntil',{MODE:'WHILE'}));
+ const contents=[{kind:'category',name:'Azioni',colour:'#5075d8',contents:actions},{kind:'category',name:'Controllo',colour:'#c68a2d',contents:controls}];
+ const readings=[];if(allowedSensors().length)readings.push(block('lab_sensor',{sensor:allowedSensors()[0]}));if(allowedValues().length)readings.push(block('lab_read',{key:allowedValues()[0]}));
+ if(readings.length)contents.push({kind:'category',name:'Sensori',colour:'#369e87',contents:readings});
+ contents.push({kind:'category',name:'Logica',colour:'#5879a6',contents:['logic_compare','logic_operation','logic_negate','logic_boolean'].map(t=>block(t))},{kind:'category',name:'Matematica',colour:'#6979b7',contents:[block('math_number',{NUM:1}),block('math_arithmetic',null,{A:number(1),B:number(1)}),block('math_modulo',null,{DIVIDEND:number(1),DIVISOR:number(2)})]},{kind:'category',name:'Variabili',colour:'#a55b80',custom:'VARIABLE'},{kind:'category',name:'Funzioni',colour:'#8963b4',custom:'LAB_PROCEDURES'});
+ return {kind:'categoryToolbox',contents};
 }
 function selectMission(next){
  if(!E.mission(next))next='pickplace';endRun('Interrotto al cambio di sfida');if(state)persist();stop();id=next;state=null;const m=E.mission(id);
@@ -29,7 +43,10 @@ function selectMission(next){
  configureSensors();workspace.clearUndo();history=[];reset();nav();$('title').textContent=m.title;$('eyebrow').textContent=`SFIDA ${String(E.missions.indexOf(m)+1).padStart(2,'0')} / 11  ·  ${m.tag}`;$('concept').textContent=m.concept;$('brief').textContent=m.brief;$('goal').textContent=m.goal;$('breadcrumb').textContent=m.tag[0]+m.tag.slice(1).toLowerCase();$('level').textContent=m.kind==='factory'?'∞ Mondo aperto':'●'.repeat(m.level)+'○'.repeat(3-m.level)+'  '+['','Base','Intermedio','Avanzato'][m.level];$('time').textContent=m.kind==='factory'?'Senza limite':'◷  '+m.time;document.body.classList.toggle('factory-mode',id==='factory');$('reset').title=id==='factory'?'Riavvia il programma, conserva la fabbrica':'Ripristina la simulazione';$('reset').setAttribute('aria-label',$('reset').title);
  renderProgram();workspace.scrollCenter();if(location.hash.slice(1)!==id)window.history.replaceState(null,'','#'+id);
 }
-function configureSensors(){if(!allowedSensors().length)return;B.Events.disable();try{for(const block of workspace.getAllBlocks(false))if(block.type==='lab_if'){const field=block.getField('sensor'),value=field.getValue();field.setOptions(allowedSensors().map(s=>[sensors[s],s]));field.setValue(allowedSensors().includes(value)?value:allowedSensors()[0]);}}finally{B.Events.enable();}}
+function configureSensors(){B.Events.disable();try{for(const b of workspace.getAllBlocks(false)){
+ const isSensor=['lab_if','lab_sensor'].includes(b.type),isValue=b.type==='lab_read';if(!isSensor&&!isValue)continue;const keys=isSensor?allowedSensors():allowedValues();if(!keys.length)continue;const field=b.getField(isSensor?'sensor':'key'),value=field.getValue(),labels=isSensor?sensors:LabRuntime.readLabels;field.setOptions(keys.map(k=>[labels[k],k]));field.setValue(keys.includes(value)?value:keys[0]);
+ }}finally{B.Events.enable();}}
+function renderVariables(){const values=compiled?compiled.snapshot():[];$('variables-view').hidden=!values.length;$('variables-view').innerHTML='<strong>Variabili del programma</strong>'+values.map(v=>`<span>${escape(v.name)} <b>${escape(v.value)}</b></span>`).join('');}
 function checkpoint(){history.push(B.serialization.workspaces.save(workspace));if(history.length>30)history.shift();}
 function loadProgram(flat){muting=true;B.Events.disable();try{B.serialization.workspaces.load(A.fromFlat(flat),workspace);}finally{B.Events.enable();muting=false;}configureSensors();workspace.clearUndo();edited();workspace.scrollCenter();}
 function edited(){reset();persist();renderProgram();}
@@ -44,25 +61,22 @@ function description(a){
 function feedback(text,type=''){$('feedback').textContent=text;$('feedback').className='feedback '+type;}
 function stop(){running=false;clearTimeout(timer);timer=null;updateControls();if(state&&id==='factory'){renderFactoryPanels();$('world-status').textContent='FABBRICA IN PAUSA';}}
 function endRun(result,success=false,error=null){if(!runOpen)return;runOpen=false;const a=saved.activity[id];if(!a)return;a.result=result;a.lastAt=new Date().toISOString();if(error){a.errors++;a.lastError=error;}if(success){a.successes++;a.best=a.best===null?state.moves:Math.min(a.best,state.moves);}persist();}
-function reset(){endRun('Esecuzione interrotta o programma modificato');stop();state=id==='factory'?(state||E.copy(saved.factory||E.initial(id))):E.initial(id);compiled=null;pc=0;active=-1;finished=false;messages=[];feedback(id==='factory'?'La fabbrica è salva. Modifica il programma e continua a costruire.':'Pronto. Costruisci la sequenza e osserva ogni azione.');$('world-status').textContent=id==='factory'?'FABBRICA IN PAUSA':'STATO INIZIALE';renderWorld();renderLog();highlight();}
+function reset(){endRun('Esecuzione interrotta o programma modificato');stop();state=id==='factory'?(state||E.copy(saved.factory||E.initial(id))):E.initial(id);compiled=null;active=-1;finished=false;messages=[];feedback(id==='factory'?'La fabbrica è salva. Modifica il programma e continua a costruire.':'Pronto. Costruisci la sequenza e osserva ogni azione.');$('world-status').textContent=id==='factory'?'FABBRICA IN PAUSA':'STATO INIZIALE';renderWorld();renderLog();renderVariables();highlight();}
 function renderLog(){$('steps-count').textContent=`${state.moves} azioni`;$('log').innerHTML=messages.length?messages.slice(-20).map((m,i)=>`<li>${escape(m)}</li>`).join(''):'<li>Il simulatore è pronto. Tocca un blocco per iniziare.</li>';$('log').scrollTop=$('log').scrollHeight;}
 function prepare(){
- if(finished)reset();if(compiled)return true;try{blocks=A.toFlat(workspace);for(const b of blocks){if(b.type==='forever'&&id!=='factory')throw Error('Il ciclo per sempre è disponibile nel livello 11.');if(b.type==='if'&&!allowedSensors().includes(b.sensor))throw Error('Questo sensore non è disponibile nella sfida.');}}catch(err){feedback(err.message,'error');return false;}if(!blocks.length){feedback('Aggiungi almeno un blocco al programma.');return false;}
- try{compiled=E.compile(blocks);if(!compiled.length){feedback('Il programma non contiene azioni. Aggiungi un blocco dentro il ciclo.');compiled=null;return false;}const a=saved.activity[id]||(saved.activity[id]={attempts:0,errors:0,successes:0,actions:0,best:null});a.attempts++;a.lastProgram=E.copy(blocks);a.result='In corso';a.lastAt=new Date().toISOString();runOpen=true;persist();return true;}catch(err){feedback(err.message,'error');return false;}
+ if(finished)reset();if(compiled)return true;try{blocks=A.toFlat(workspace);A.validate(blocks,{actions:available[kind()],sensors:allowedSensors(),values:allowedValues(),forever:id==='factory'});}catch(err){feedback(err.message,'error');return false;}if(!blocks.length){feedback('Aggiungi almeno un blocco al programma.');return false;}
+ try{compiled=E.createRunner(id,blocks);if(compiled.done){feedback('Collega almeno un’azione o una chiamata di funzione al blocco di avvio.');compiled=null;return false;}const a=saved.activity[id]||(saved.activity[id]={attempts:0,errors:0,successes:0,actions:0,best:null});a.attempts++;a.lastProgram=E.copy(blocks);a.result='In corso';a.lastAt=new Date().toISOString();runOpen=true;persist();return true;}catch(err){compiled=null;feedback(err.message,'error');return false;}
 }
+
 function finish(){finished=true;stop();if(id==='factory'){endRun('Sequenza terminata; fabbrica conservata');feedback('Sequenza terminata. La produzione resta salvata: continua, migliora il programma oppure usa “per sempre”.');$('world-status').textContent='FABBRICA IN PAUSA';persist();return;}const success=E.won(id,state);$('world-status').textContent=success?'OBIETTIVO RAGGIUNTO':'PROGRAMMA TERMINATO';feedback(success?`Sfida completata! ${state.moves} azioni eseguite. Riesci a spiegare perché funziona?`:'Programma terminato. L’obiettivo non è ancora raggiunto: osserva lo stato e modifica la sequenza.',success?'success':'');endRun(success?'Obiettivo raggiunto':'Obiettivo non ancora raggiunto',success);if(success&&!saved.completed.includes(id)){saved.completed.push(id);persist();nav();}}
 function tick(){
- if(!prepare())return stop();
- while(compiled[pc]?.type==='jump')pc=compiled[pc].skip;
- if(pc>=compiled.length)return finish();const a=compiled[pc];active=a.source;highlight();
+ if(!prepare())return stop();if(compiled.done)return finish();
  try{
-  if(a.type==='loop'){pc=a.skip;messages.push('∞ Nuovo ciclo');}
-  else if(a.type==='if'){const result=E.condition(id,state,a.sensor);pc=result?pc+1:a.skip;messages.push(`? ${sensors[a.sensor]}: ${result?'VERO':'FALSO'}`);}
-  else{state=E.act(id,state,a);pc++;if(saved.activity[id])saved.activity[id].actions++;messages.push(`${String(state.moves).padStart(2,'0')}  ${description(a)}`);}
-  messages=messages.slice(-100);renderWorld();renderLog();feedback(state.notice||(a.type==='if'||a.type==='loop'?messages.at(-1):description(a)),state.notice?'success':'');persist();$('world-status').textContent=running?'IN ESECUZIONE':'PASSO COMPLETATO';
-  while(compiled[pc]?.type==='jump')pc=compiled[pc].skip;
-  if(pc>=compiled.length)return finish();
- }catch(err){finished=true;stop();endRun('Errore di esecuzione',false,err.message);feedback(`Blocco ${active+1}: ${err.message}`,'error');messages.push('! '+err.message);renderLog();$('world-status').textContent='CONTROLLA IL PROGRAMMA';return;}
+  const result=compiled.step(state);active=result.source;highlight();
+  if(result.action){state=E.act(id,state,result.action);if(saved.activity[id])saved.activity[id].actions++;messages.push(`${String(state.moves).padStart(2,'0')}  ${description(result.action)}`);}else messages.push(result.message);
+  messages=messages.slice(-100);renderWorld();renderLog();renderVariables();feedback(result.action?state.notice||description(result.action):result.message,result.action&&state.notice?'success':'');persist();$('world-status').textContent=running?'IN ESECUZIONE':'PASSO COMPLETATO';
+  if(compiled.done)return finish();
+ }catch(err){active=compiled.source;highlight();finished=true;stop();endRun('Errore di esecuzione',false,err.message);feedback(`Blocco ${active+1}: ${err.message}`,'error');messages.push('! '+err.message);renderLog();$('world-status').textContent='CONTROLLA IL PROGRAMMA';return;}
  if(running)timer=setTimeout(tick,Number($('speed').value));
 }
 const colors={A:'#8cacff',B:'#f3bd58',C:'#ec8e88'};
@@ -151,9 +165,10 @@ function renderFactoryPanels(){
 A.define(B);
 const theme=B.Theme.defineTheme('officina',{base:B.Themes.Classic,componentStyles:{workspaceBackgroundColour:'#fbfcff',toolboxBackgroundColour:'#f1f4f9',toolboxForegroundColour:'#394b64',flyoutBackgroundColour:'#e8eef9',flyoutForegroundColour:'#344660',flyoutOpacity:0.96,scrollbarColour:'#bbc8dc',insertionMarkerColour:'#f3bc55',insertionMarkerOpacity:0.5,cursorColour:'#345fe9'},fontStyle:{family:'-apple-system, BlinkMacSystemFont, Segoe UI, sans-serif',weight:'500',size:12}});
 workspace=B.inject('blockly',{toolbox:toolbox(),theme,renderer:'zelos',media:'vendor/blockly/media/',sounds:false,trashcan:true,grid:{spacing:20,length:2,colour:'#dce3ee',snap:true},zoom:{controls:true,wheel:true,startScale:.85,minScale:.35,maxScale:1.5,scaleSpeed:1.12},move:{scrollbars:true,drag:true,wheel:true},maxBlocks:200});
+workspace.registerToolboxCategoryCallback('LAB_PROCEDURES',ws=>A.procedureFlyout(B,ws));
 workspace.addChangeListener(event=>{
  if(muting||event.isUiEvent||event.type===B.Events.FINISHED_LOADING)return;
- if(event.type===B.Events.BLOCK_CREATE&&allowedSensors().length){for(const block of workspace.getAllBlocks(false)){if(block.type==='lab_if'){const field=block.getField('sensor');if(field.getOptions(false).length>1){const value=field.getValue();B.Events.disable();try{field.setOptions(allowedSensors().map(s=>[sensors[s],s]));field.setValue(allowedSensors().includes(value)?value:allowedSensors()[0]);}finally{B.Events.enable();}}}}}
+ if(event.type===B.Events.BLOCK_CREATE)configureSensors();
  if(running)stop();reset();persist();renderProgram();
 });
 new ResizeObserver(()=>B.svgResize(workspace)).observe($('blockly'));
@@ -166,7 +181,7 @@ $('clear').onclick=()=>{if(running)return;checkpoint();loadProgram([]);};
 $('rules').onclick=()=>modal('Le regole · '+E.mission(id).title,`<p>${escape(E.mission(id).rule)}</p><p><strong>Obiettivo:</strong> ${escape(E.mission(id).goal)}</p>`);
 $('hint').onclick=()=>modal('Un indizio, un passo avanti',`<p>${escape(E.mission(id).hint)}</p><p>Prova a scrivere i primi due passi e immagina lo stato che producono.</p>`);
 $('report').onclick=report;
-$('help').onclick=()=>modal('Programmare con Blockly',`<ol><li><strong>Apri Azioni o Controllo</strong> nella libreria dell’editor.</li><li><strong>Trascina i blocchi</strong> sul foglio e incastrali sotto “quando premi Esegui”. I blocchi staccati segnalano un errore.</li><li><strong>Modifica i parametri</strong> cliccando sui campi del blocco.</li><li><strong>Inserisci le azioni dentro i cicli e le condizioni.</strong> Puoi lasciare vuoto il ramo “altrimenti”.</li><li><strong>Un passo</strong> esegue un’azione o controlla una condizione. “Esegui” avanza automaticamente; “Pausa” lo sospende.</li><li><strong>↺ ripristina il mondo</strong> conservando il programma. Nelle sfide 1–10 una modifica riporta la simulazione all’inizio. Nel livello 11 il mondo rimane salvato: si riavvia soltanto il programma.</li></ol><p>Usa il cestino per eliminare i blocchi, i pulsanti +/− per lo zoom e ⊙ per centrare il programma. Le sfide si salvano in questo browser.</p>`);
+$('help').onclick=()=>modal('Programmare con Blockly',`<ol><li><strong>Apri Azioni o Controllo</strong> nella libreria dell’editor.</li><li><strong>Trascina i blocchi</strong> sul foglio e incastrali sotto “quando premi Esegui”. Le definizioni di funzione stanno a parte; gli altri blocchi staccati segnalano un errore.</li><li><strong>Funzioni:</strong> crea una definizione nella categoria Funzioni, rinominala e inserisci le azioni nel suo corpo. La definizione resta separata dall’avvio: usa il blocco con il suo nome per chiamarla. L’ingranaggio aggiunge parametri; trovi i loro valori in Variabili. Le funzioni eseguono azioni e non restituiscono un valore.</li><li><strong>Variabili e valori:</strong> usa i blocchi con spazi per numeri per inserire variabili, calcoli o letture dei sensori. Le variabili partono da 0 a ogni nuovo avvio, restano in memoria durante la pausa e sono visibili sotto l’editor.</li><li><strong>Finché / fino a:</strong> trascina una condizione da Logica o Sensori. Ogni controllo è un passo e il programma resta sempre arrestabile; il tempo della fabbrica avanza solo con le azioni. Per aspettare un raccolto, inserisci anche “attendi”.</li><li><strong>Modifica i parametri</strong> cliccando sui campi del blocco.</li><li><strong>Inserisci le azioni dentro i cicli e le condizioni.</strong> Puoi lasciare vuoto il ramo “altrimenti”.</li><li><strong>Un passo</strong> esegue un’azione o controlla una condizione. “Esegui” avanza automaticamente; “Pausa” lo sospende.</li><li><strong>↺ ripristina il mondo</strong> conservando il programma. Nelle sfide 1–10 una modifica riporta la simulazione all’inizio. Nel livello 11 il mondo rimane salvato: si riavvia soltanto il programma.</li></ol><p>Usa il cestino per eliminare i blocchi, i pulsanti +/− per lo zoom e ⊙ per centrare il programma. Le sfide si salvano in questo browser.</p>`);
 $('close-modal').onclick=()=>$('modal').close();$('modal').addEventListener('click',e=>{if(e.target===$('modal')){const r=$('modal').getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)$('modal').close();}});
 window.addEventListener('hashchange',()=>selectMission(location.hash.slice(1)));
 selectMission(location.hash.slice(1)||'pickplace');

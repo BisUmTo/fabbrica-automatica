@@ -34,9 +34,21 @@ Ogni azione fa avanzare il tempo; uno spostamento costa la distanza percorsa in 
 
 Il mondo resta salvato cambiando sfida, modificando il programma e ricaricando la pagina. Nel livello 11 il pulsante di riavvio riparte dal primo blocco **conservando il mondo**. Nelle dieci sfide finite il riavvio ripristina la configurazione iniziale.
 
+## Blocchi standard e funzioni
+
+Oltre alle azioni del simulatore, tutti i livelli offrono le categorie **Controllo, Logica, Matematica, Variabili e Funzioni**. **Sensori** compare dove il mondo espone letture. Le definizioni native di Blockly possono essere rinominate e ricevere parametri tramite l’ingranaggio: i blocchi di chiamata si aggiornano automaticamente.
+
+- Le funzioni eseguono una sequenza di azioni (procedure, senza valore di ritorno). La definizione sta separata dall’avvio; il richiamo si incastra nel programma. I parametri sono locali alla chiamata; le altre variabili sono globali.
+- I blocchi di movimento, attesa e spostamento dischi con ingressi numerici accettano variabili, parametri e calcoli. I vecchi blocchi con numeri incorporati restano compatibili con i salvataggi esistenti.
+- Sono disponibili `finché / fino a`, ripetizioni con un valore calcolato, cicli con contatore, `se / altrimenti se / altrimenti`, confronti, `e / o / non`, aritmetica e resto della divisione.
+- I sensori booleani si possono combinare. Le letture numeriche dipendono dalla sfida: posizione, livello del serbatoio, pezzi sul nastro oppure magazzino, crediti, zaino, ordini e tick della fabbrica.
+- Il pannello sotto l’editor mostra le variabili durante l’esecuzione. Ripristino, modifica e nuovo avvio le azzerano; la pausa le conserva. Il mondo della fabbrica resta salvato come prima.
+
+Esempio didattico: definire `raccogli campo(colonna, riga)` con spostamento, raccolta e semina, poi chiamarla per più campi. Nella Torre di Hanoi si possono usare funzioni ricorsive con parametri. Le chiamate annidate sono limitate a 32; i cicli vengono eseguiti un’istruzione alla volta e restano sempre interrompibili. Solo le azioni del mondo fanno avanzare il tempo: un ciclo in attesa della maturazione deve contenere anche un blocco `attendi`.
+
 ## Report e dati locali
 
-Il pulsante **Scarica report PDF** sostituisce la guida docente. Il report include nome facoltativo, classe, esercizi completati, avvii, azioni eseguite, errori di esecuzione, migliori soluzioni registrate, ultimi programmi avviati e stato della fabbrica. Le bozze sono distinte dai programmi eseguiti. Non assegna voti.
+Il pulsante **Scarica report PDF** sostituisce la guida docente. Il report include nome facoltativo, classe, esercizi completati, avvii, azioni eseguite, errori di esecuzione, migliori soluzioni registrate, ultimi programmi avviati (comprese funzioni, parametri ed espressioni) e stato della fabbrica. Le bozze sono distinte dai programmi eseguiti. Non assegna voti.
 
 Tutti questi dati restano in `localStorage`. Nessun nome, programma o report viene inviato a un server. I salvataggi dipendono da browser e origine: il sito GitHub Pages non vede i dati di un'anteprima su localhost. La chiave del prototipo precedente è mantenuta per compatibilità sulla stessa origine. I vecchi completamenti non ricevono tentativi inventati.
 
@@ -55,11 +67,12 @@ npm ci --ignore-scripts
 npm test
 ```
 
-Le verifiche coprono le dieci soluzioni, i vincoli di sicurezza, la conversione Blockly, i cicli infiniti, conservazione delle risorse, acquisti e automazioni, e la generazione del PDF.
+Le verifiche coprono le dieci soluzioni, i vincoli di sicurezza, la conversione Blockly, i cicli infiniti, conservazione delle risorse, acquisti e automazioni, funzioni con parametri e ricorsione, variabili, cicli condizionali, letture e la generazione del PDF.
 
 ## Struttura
 
-- `dist/engine.js`: simulazioni, verifiche, compilatore degli algoritmi.
+- `dist/engine.js`: simulazioni, verifiche e collegamento all’interprete.
+- `dist/runtime.js`: compilatore, interprete a passi, espressioni e chiamate di funzione.
 - `dist/farm.js`: economia e stato del mondo infinito.
 - `dist/blockly-adapter.js`: blocchi e conversione delle sequenze.
 - `dist/app.js`: interfaccia, esecuzione e salvataggio.

@@ -1,6 +1,6 @@
 {
   "name": "fabbrica-automatica",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Undici livelli di automazione con Blockly, una fabbrica infinita e report PDF locali",
   "directories": {
     "test": "tests"

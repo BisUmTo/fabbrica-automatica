@@ -1,5 +1,6 @@
 (function(root){
 'use strict';
+const Runtime=typeof module!=='undefined'?require('./runtime.js'):root.LabRuntime;
 const F=typeof module!=='undefined'?require('./farm.js'):root.Factory;
 const missions=[
 {id:'stack',title:'Block stacking',tag:'ROBOTICA',level:2,time:'12 min',icon:'▥',concept:'Sequenze · coordinate · precondizioni',brief:'Impila i cubi nella colonna 1: A alla base, B al centro, C in cima.',rule:'La pinza prende solo il cubo in cima. Rilascia su un appoggio. Coordinate: x = colonna, y = quota; il primo cubo è a y = 2. In modalità JUMP il robot sale prima di spostarsi.',hint:'C impedisce di raggiungere A. Usa la colonna 3 come deposito temporaneo: sposta C, poi B, infine C.',goal:'Colonna 1: A → B → C dal basso',kind:'robot'},
@@ -16,7 +17,7 @@ const missions=[
 const order=['pickplace','path','stack','river','sensor','sort','tank','pallet','traffic','hanoi'];
 missions.sort((a,b)=>order.indexOf(a.id)-order.indexOf(b.id));
 for(const m of missions)if(['pallet','traffic'].includes(m.id))m.level=3;
-missions.push({id:'factory',title:'La fabbrica infinita',tag:'MONDO APERTO',level:4,time:'∞',icon:'∞',concept:'Coltiva · produci · automatizza · espandi',brief:'Trasforma una fattoria in una fabbrica: coltiva grano, estrai minerale, produci kit e reinvesti i ricavi in macchine automatiche.',rule:'Ogni azione fa avanzare il tempo. Il grano matura in 4 tick e va riseminato dopo la raccolta. Lo zaino contiene 6 risorse. Scarica al magazzino (3,3); all’assemblatore (5,3), 2 grano + 1 minerale diventano 1 kit. Consegna l’ordine alla banchina (7,3). Gli ordini crescono senza fine. Il mondo resta salvato quando modifichi i blocchi; Pausa ferma anche le macchine.',hint:'Comincia dai campi (1,4) e (2,4): raccogli e risemina. Prendi un minerale in (1,1), scarica tutto in (3,3), produci in (5,3) e consegna in (7,3). Poi racchiudi il percorso in “per sempre” e usa “se ci sono kit per l’ordine” prima di consegnare.',goal:'Completa ordini e costruisci la tua automazione',kind:'factory'});
+missions.push({id:'factory',title:'La fabbrica infinita',tag:'MONDO APERTO',level:4,time:'∞',icon:'∞',concept:'Coltiva · produci · automatizza · espandi',brief:'Trasforma una fattoria in una fabbrica: coltiva grano, estrai minerale, produci kit e reinvesti i ricavi in macchine automatiche.',rule:'Ogni azione fa avanzare il tempo. Il grano matura in 4 tick e va riseminato dopo la raccolta. Lo zaino contiene 6 risorse. Scarica al magazzino (3,3); all’assemblatore (5,3), 2 grano + 1 minerale diventano 1 kit. Consegna l’ordine alla banchina (7,3). Gli ordini crescono senza fine. Il mondo resta salvato quando modifichi i blocchi; Pausa ferma anche le macchine.',hint:'Comincia dai campi (1,4) e (2,4): raccogli e risemina. Prendi un minerale in (1,1), scarica tutto in (3,3), produci in (5,3) e consegna in (7,3). Puoi definire una funzione “raccogli campo” con i parametri colonna e riga, da richiamare per ogni campo. Poi racchiudi il percorso in “per sempre” e usa “se ci sono kit per l’ordine” prima di consegnare.',goal:'Completa ordini e costruisci la tua automazione',kind:'factory'});
 const copy=x=>JSON.parse(JSON.stringify(x));
 const mission=id=>missions.find(m=>m.id===id);
 function initial(id){
@@ -100,13 +101,13 @@ function won(id,s){
  if(kind==='traffic')return s.served.A&&s.served.B&&s.lights.A==='rosso'&&s.lights.B==='rosso';
  return s.pegs[2].join() === '3,2,1';
 }
-function compile(blocks){
- if(blocks.length>200)fail('Limite: massimo 200 blocchi.');let pos=0;
- function parse(nested=false){const nodes=[];while(pos<blocks.length){const source=pos,a={...blocks[pos++],source};if(a.type==='end'||a.type==='else'){if(!nested)fail('Blocco senza apertura.');return {nodes,stop:a.type};}if(a.type==='repeat'||a.type==='if'||a.type==='forever'){const part=parse(true);a.body=part.nodes;if(a.type==='if'&&part.stop==='else'){const alt=parse(true);a.other=alt.nodes;if(alt.stop!=='end')fail('Manca il blocco fine.');}else if(part.stop!=='end')fail('Manca il blocco fine.');}nodes.push(a);}if(nested)fail('Manca il blocco fine.');return {nodes};}
- const tree=parse().nodes,out=[];let work=0;
- function emit(nodes){if(++work>10000)fail('Limite: troppi cicli annidati.');for(const a of nodes){if(out.length>1000)fail('Limite: programma troppo lungo (1000 azioni).');if(a.type==='forever'){const start=out.length;emit(a.body);out.push({type:'loop',skip:start,source:a.source});}else if(a.type==='repeat'){const n=integer(a.n,1,100);for(let j=0;j<n;j++)emit(a.body);}else if(a.type==='if'){const head={type:'if',sensor:a.sensor,source:a.source,skip:0};out.push(head);emit(a.body);if(a.other){const jump={type:'jump',skip:0,source:a.source};out.push(jump);head.skip=out.length;emit(a.other);jump.skip=out.length;}else head.skip=out.length;}else out.push(a);}}
- emit(tree);if(out.length>1000)fail('Limite: programma troppo lungo (1000 azioni).');return out;
-}
+const compile=Runtime.compile;
+function createRunner(id,blocks){return new Runtime.Runner(compile(blocks),(s,key)=>condition(id,s,key),(s,key)=>{
+ if(key==='x'||key==='y')return s[key];
+ if(id==='factory'){if(['wheat','ore','kits'].includes(key))return s.stock[key];if(key==='bag')return s.bag.wheat+s.bag.ore;if(['coins','orders','ticks'].includes(key))return s[key];}
+ if(key==='level'&&id==='tank')return s.level;if(key==='remaining'&&id==='sort')return s.queue.length;
+ fail('Questo valore non è disponibile nella sfida.');
+});}
 const move=(x,y)=>({type:'move',x,y,mode:'jump'}), pick={type:'pick'},drop={type:'drop'};
 const transfer=(x,y,u,v)=>[move(x,y),pick,move(u,v),drop];
 function solution(id){
@@ -122,6 +123,6 @@ function solution(id){
  if(id==='traffic')return ['A','B'].flatMap(lane=>[{type:'light',lane,color:'verde'},{type:'wait',seconds:2},{type:'light',lane,color:'giallo'},{type:'wait',seconds:1},{type:'light',lane,color:'rosso'},{type:'wait',seconds:1}]);
  return [[1,3],[1,2],[3,2],[1,3],[2,1],[2,3],[1,3]].map(([from,to])=>({type:'disk',from,to}));
 }
-const api={missions,mission,initial,act,won,condition,compile,solution,copy};
+const api={missions,mission,initial,act,won,condition,compile,createRunner,solution,copy};
 if(typeof module!=='undefined')module.exports=api;else root.Lab=api;
 })(typeof window!=='undefined'?window:globalThis);
