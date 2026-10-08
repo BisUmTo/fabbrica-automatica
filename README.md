@@ -40,7 +40,7 @@ Oltre alle azioni del simulatore, tutti i livelli offrono le categorie **Control
 
 - I blocchi staccati e le funzioni non richiamate possono restare nell’editor come bozze, anche incomplete. Restano salvati, ma non vengono eseguiti né inclusi nei programmi del report. Basta ricollegarli per usarli.
 - Le funzioni eseguono una sequenza di azioni (procedure, senza valore di ritorno). La definizione sta separata dall’avvio; il richiamo si incastra nel programma. I parametri sono locali alla chiamata; le altre variabili sono globali.
-- I blocchi di movimento, attesa e spostamento dischi con ingressi numerici accettano variabili, parametri e calcoli. I vecchi blocchi con numeri incorporati restano compatibili con i salvataggi esistenti.
+- I blocchi di movimento, attesa e spostamento dischi con ingressi numerici accettano variabili, parametri e calcoli. La libreria mostra solo queste versioni componibili: sono stati rimossi i duplicati con numeri incorporati e la condizione con sensore fisso. I vecchi blocchi restano compatibili con i salvataggi esistenti.
 - Sono disponibili `finché / fino a`, ripetizioni con un valore calcolato, cicli con contatore, `se / altrimenti se / altrimenti`, confronti, `e / o / non`, aritmetica e resto della divisione.
 - I sensori booleani si possono combinare. Le letture numeriche dipendono dalla sfida: posizione, livello del serbatoio, pezzi sul nastro oppure magazzino, crediti, zaino, ordini e tick della fabbrica.
 - Il pannello sotto l’editor mostra le variabili durante l’esecuzione. Ripristino, modifica e nuovo avvio le azzerano; la pausa le conserva. Il mondo della fabbrica resta salvato come prima.
