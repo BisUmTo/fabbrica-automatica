@@ -21,14 +21,11 @@ function nav(){
 function toolbox(){
  const block=(type,fields,inputs)=>({kind:'block',type,...(fields?{fields}:{}),...(inputs?{inputs}:{})}),action=type=>block('lab_'+type);
  const number=value=>({shadow:{type:'math_number',fields:{NUM:value}}});
- const actions=available[kind()].map(action);
- if(kind()==='factory')actions.push(block('lab_farm_go_value',null,{x:number(1),y:number(4)}));
- if(kind()==='robot')actions.push(block('lab_move_value',null,{x:number(1),y:number(2)}));
- if(kind()==='hanoi')actions.push(block('lab_disk_value',null,{from:number(1),to:number(3)}));
- if(available[kind()].includes('wait'))actions.push(block('lab_wait_value',null,{seconds:number(1)}));
- const controls=[action('repeat'),block('controls_repeat_ext',null,{TIMES:number(3)}),block('controls_for',null,{FROM:number(1),TO:number(3),BY:number(1)})];
+ const numericInputs={farm_go:{x:number(1),y:number(4)},move:{x:number(1),y:number(2)},disk:{from:number(1),to:number(3)},wait:{seconds:number(1)}};
+ // Keep legacy definitions for saved programs; offer only composable blocks in the library.
+ const actions=available[kind()].map(type=>numericInputs[type]?block('lab_'+type+'_value',null,numericInputs[type]):action(type));
+ const controls=[block('controls_repeat_ext',null,{TIMES:number(3)}),block('controls_for',null,{FROM:number(1),TO:number(3),BY:number(1)})];
  if(kind()==='factory')controls.push(action('forever'));
- if(allowedSensors().length)controls.push(block('lab_if',{sensor:allowedSensors()[0]}));
  controls.push(block('controls_if'),block('controls_whileUntil',{MODE:'WHILE'}));
  const contents=[{kind:'category',name:'Azioni',colour:'#5075d8',contents:actions},{kind:'category',name:'Controllo',colour:'#c68a2d',contents:controls}];
  const readings=[];if(allowedSensors().length)readings.push(block('lab_sensor',{sensor:allowedSensors()[0]}));if(allowedValues().length)readings.push(block('lab_read',{key:allowedValues()[0]}));
