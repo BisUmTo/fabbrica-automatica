@@ -32,6 +32,18 @@ Gli ordini richiedono 1, 2, 2, 3, 3… kit e pagano 20 crediti per kit. Non c'è
 
 Ogni azione fa avanzare il tempo; uno spostamento costa la distanza percorsa in tick. Il ciclo **per sempre** può continuare finché viene messo in pausa. Anche un ciclo vuoto cede il controllo all'interfaccia, senza bloccare il browser. I sensori consentono di evitare raccolti prematuri, zaini pieni, materiali mancanti e spedizioni incomplete. L'acquisto delle macchine può richiedere di riprogettare il programma: controllare i sensori prima delle azioni.
 
+Le macchine possono raggiungere tre livelli, con due acquisti successivi all’installazione:
+
+| Macchina | Ciclo ai livelli 1 → 2 → 3 | Costo installazione → potenziamento 2 → potenziamento 3 |
+| --- | --- | --- |
+| Mietitrice | 12 → 8 → 4 tick | 30 → 60 → 120 crediti |
+| Trivella | 6 → 3 → 1 tick | 50 → 100 → 200 crediti |
+| Linea automatica | 4 → 2 → 1 tick | 80 → 160 → 320 crediti |
+
+Il blocco **potenzia velocità di** compra il livello successivo di una macchina già installata. I sensori “posso potenziare…” verificano crediti e disponibilità del livello successivo. Il blocco di installazione e i suoi sensori conservano il comportamento precedente. Le installazioni nei vecchi salvataggi corrispondono al livello 1. Il grano continua a maturare in 4 tick e la linea richiede comunque i materiali: una macchina più veloce può restare in attesa delle risorse.
+
+Nella fabbrica **attendi** non ha più il tetto di 10 secondi: accetta interi positivi entro la precisione numerica del simulatore (1 secondo = 1 tick). I periodi ripetuti vengono calcolati in blocco, conservando l’ordine di raccolta, estrazione e assemblaggio, così anche attese molto lunghe non richiedono un’iterazione per ogni tick. Il limite degli altri esercizi resta invariato.
+
 Il mondo resta salvato cambiando sfida, modificando il programma e ricaricando la pagina. Nel livello 11 il pulsante di riavvio riparte dal primo blocco **conservando il mondo**. Nelle dieci sfide finite il riavvio ripristina la configurazione iniziale.
 
 ## Blocchi standard e funzioni
