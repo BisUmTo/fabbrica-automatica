@@ -1,6 +1,6 @@
 (function(root){
 'use strict';
-const fieldKeys={farm_go:['x','y'],farm_upgrade:['upgrade'],move:['x','y','mode'],cross:['cargo'],turn:['direction'],sort:['bin'],valve:['value'],light:['lane','color'],disk:['from','to'],wait:['seconds'],repeat:['n'],if:['sensor']};
+const fieldKeys={farm_go:['x','y'],farm_upgrade:['upgrade'],farm_boost:['upgrade'],move:['x','y','mode'],cross:['cargo'],turn:['direction'],sort:['bin'],valve:['value'],light:['lane','color'],disk:['from','to'],wait:['seconds'],repeat:['n'],if:['sensor']};
 const num=(name,value,min,max)=>({type:'field_number',name,value,min,max,precision:1});
 const dd=(name,options)=>({type:'field_dropdown',name,options:options.map(o=>Array.isArray(o)?o:[String(o),String(o)])});
 const statement=name=>({type:'input_statement',name});
@@ -9,11 +9,12 @@ function define(B){
  const action=(type,message,args=[],colour=220,tip='')=>({type:'lab_'+type,message0:message,args0:args,previousStatement:null,nextStatement:null,colour:({220:"#5275dc",165:"#369e87",35:"#ce9131"})[colour]||colour,tooltip:tip,inputsInline:true});
  B.defineBlocksWithJsonArray([
  {type:'lab_start',message0:'quando premi Esegui',nextStatement:null,colour:'#ce9131',hat:'cap',tooltip:'Collega qui il programma. I blocchi staccati non vengono eseguiti.'},
+ action('farm_boost','potenzia velocità di %1',[dd('upgrade',[['mietitrice','harvester'],['trivella','drill'],['linea automatica','assembler']])],165,'Acquista il prossimo livello di velocità di una macchina già installata.'),
  action('farm_go_value','vai alle coordinate x %1 y %2',[input('x'),input('y')]),
  action('move_value','vai alle coordinate x %1 y %2 modalità %3',[input('x'),input('y'),dd('mode',[['JUMP','jump'],['diretta','linear']])]),
  action('wait_value','attendi %1 secondi',[input('seconds')],35),
  action('disk_value','sposta disco da %1 a %2',[input('from'),input('to')]),
- {type:'lab_sensor',message0:'sensore %1',args0:[dd('sensor',[['strada libera','clear'],['pezzo rosso','red'],['livello < 60 L','below'],['pinza piena','holding'],['raccolto maturo','cropReady'],['zaino pieno','bagFull'],['risorse nello zaino','bagNotEmpty'],['materiali per un kit','canCraft'],['kit per l’ordine','canShip'],['30 crediti per mietitrice','canHarvestUpgrade'],['50 crediti per trivella','canDrillUpgrade'],['80 crediti per linea','canAssemblyUpgrade']])],output:'Boolean',colour:'#369e87'},
+ {type:'lab_sensor',message0:'sensore %1',args0:[dd('sensor',[['strada libera','clear'],['pezzo rosso','red'],['livello < 60 L','below'],['pinza piena','holding'],['raccolto maturo','cropReady'],['zaino pieno','bagFull'],['risorse nello zaino','bagNotEmpty'],['materiali per un kit','canCraft'],['kit per l’ordine','canShip'],['30 crediti per mietitrice','canHarvestUpgrade'],['50 crediti per trivella','canDrillUpgrade'],['80 crediti per linea','canAssemblyUpgrade'],['posso potenziare la mietitrice','canHarvestBoost'],['posso potenziare la trivella','canDrillBoost'],['posso potenziare la linea','canAssemblyBoost']])],output:'Boolean',colour:'#369e87'},
  {type:'lab_read',message0:'leggi %1',args0:[dd('key',[['posizione x','x'],['posizione y','y'],['grano nel magazzino','wheat'],['minerale nel magazzino','ore'],['kit nel magazzino','kits'],['crediti','coins'],['risorse nello zaino','bag'],['ordini consegnati','orders'],['tick','ticks'],['livello del serbatoio','level'],['pezzi sul nastro','remaining']])],output:'Number',colour:'#369e87'},
  action('move','vai a x %1 y %2 modalità %3',[num('x',1,1,3),num('y',2,2,5),dd('mode',[['JUMP','jump'],['diretta','linear']])],220,'JUMP: solleva la pinza, spostala sopra la destinazione, poi scendi.'),
  action('farm_go','vai a x %1 y %2',[num('x',1,1,7),num('y',4,1,5)]),
@@ -28,9 +29,9 @@ function define(B){
  action('valve','%1 la valvola',[dd('value',['apri','chiudi'])],165),
  action('light','semaforo %1 %2',[dd('lane',['A','B']),dd('color',['verde','giallo','rosso'])],165),
  action('disk','sposta disco da %1 a %2',[dd('from',[1,2,3]),dd('to',[1,2,3])],165),
- action('wait','attendi %1 secondi',[num('seconds',1,1,10)],35),
+ action('wait','attendi %1 secondi',[num('seconds',1,1)],35),
  {...action('repeat','ripeti %1 volte',[num('n',3,1,100)],35),message1:'%1',args1:[statement('DO')]},
- {...action('if','se %1',[dd('sensor',[['strada libera','clear'],['pezzo rosso','red'],['livello < 60 L','below'],['pinza piena','holding'],['raccolto maturo','cropReady'],['zaino pieno','bagFull'],['risorse nello zaino','bagNotEmpty'],['materiali per un kit','canCraft'],['kit per l’ordine','canShip'],['30 crediti per mietitrice','canHarvestUpgrade'],['50 crediti per trivella','canDrillUpgrade'],['80 crediti per linea','canAssemblyUpgrade']])],35),message1:'allora %1',args1:[statement('DO')],message2:'altrimenti %1',args2:[statement('ELSE')]}
+ {...action('if','se %1',[dd('sensor',[['strada libera','clear'],['pezzo rosso','red'],['livello < 60 L','below'],['pinza piena','holding'],['raccolto maturo','cropReady'],['zaino pieno','bagFull'],['risorse nello zaino','bagNotEmpty'],['materiali per un kit','canCraft'],['kit per l’ordine','canShip'],['30 crediti per mietitrice','canHarvestUpgrade'],['50 crediti per trivella','canDrillUpgrade'],['80 crediti per linea','canAssemblyUpgrade'],['posso potenziare la mietitrice','canHarvestBoost'],['posso potenziare la trivella','canDrillBoost'],['posso potenziare la linea','canAssemblyBoost']])],35),message1:'allora %1',args1:[statement('DO')],message2:'altrimenti %1',args2:[statement('ELSE')]}
  ]);
 }
 function fromFlat(flat){
